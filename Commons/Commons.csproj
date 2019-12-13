@@ -52,9 +52,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CatoLog.cs" />
-    <Compile Include="Dapper_DB.cs" />
     <Compile Include="FileLogger.cs" />
     <Compile Include="MailCury.cs" />
+    <Compile Include="Model\MailParts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

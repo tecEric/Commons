@@ -1,101 +1,140 @@
-﻿using System;
+﻿using Commons.Model;
+using System;
 using System.Configuration;
+using System.Linq;
 using System.Net.Mail;
 
 namespace Commons
 {
-    class MailCury
+    public class MailCury
     {
-        public static void SendMail_Test(string subject = "", string body = "", bool test = false, bool localConfig = false)
+        private MailMessage Mail;
+        private SmtpClient SmtpServer;
+        public MailParts MailSettings { get; set; }
+
+        #region Construct
+        public MailCury(string smtpServer)
+        {
+            Init(smtpServer);
+        }
+
+        public MailCury(string smtpServer, MailParts mailSettings)
+        {
+            Init(smtpServer, mailSettings);
+        }
+
+        public MailCury()
+        {
+            Init();
+        }
+        #endregion
+
+        #region Init
+        private void Init()
+        {
+            Mail = new MailMessage();
+            SmtpServer = SmtpServer ?? new SmtpClient();
+            MailSettings = MailSettings ?? new MailParts();
+        }
+
+        private void Init(string smtpServer)
+        {
+            Init();
+            SmtpServer = new SmtpClient(smtpServer);
+        }
+
+        private void Init(string smtpServer, MailParts mailSettings)
+        {
+            Init(smtpServer);
+            MailSettings = mailSettings;
+            CargaMailSettings();
+        }
+
+        private void Init(MailParts mailSettings)
+        {
+            Init();
+            MailSettings = mailSettings;
+            CargaMailSettings();
+        }
+        #endregion
+
+        public void CargaMailSettings()
+        {
+            Mail.From = new MailAddress(MailSettings.From);
+            if (!string.IsNullOrEmpty(MailSettings.Destinatarios_lista))
+            {
+                Mail.To.Add(MailSettings.Destinatarios_lista);
+            }
+            if (!string.IsNullOrEmpty(MailSettings.Cc_lista))
+            {
+                Mail.CC.Add(MailSettings.Cc_lista);
+            }
+            if (!string.IsNullOrEmpty(MailSettings.BCc_lista))
+            {
+                Mail.Bcc.Add(MailSettings.BCc_lista);
+            }
+            if (MailSettings.g_Attachments != null)
+            {
+                foreach (string a in MailSettings.g_Attachments.Where(c => c.Length > 0))
+                {
+                    Mail.Attachments.Add(new Attachment(a));
+                }
+            }
+            Mail.Priority = MailSettings.Priority;
+            Mail.Body = MailSettings.Body ?? string.Empty;
+            Mail.Subject = MailSettings.Subject ?? string.Empty;
+        }
+
+        public void CargaMailSettings(MailParts mailSettings)
+        {
+            MailSettings = mailSettings;
+            CargaMailSettings();
+        }
+
+        public bool EnviarCorreo()
         {
             try
             {
-                MailMessage mail = new MailMessage();
-
-                string[] Server_To = ConfigurationManager.AppSettings["Mail.SMTP.Server.To"].ToString().Split(';');
-                string Priority = ConfigurationManager.AppSettings["Mail.Priority"].ToString();
-                string destinatarios = string.Empty;
-                foreach (string s in Server_To)
-                {
-                    mail.To.Add(s);
-                    destinatarios += s + "\r\n";
-                }
-                FileLogger.WriteToFile(Message: "Correo enviado a: " + destinatarios, tipo: FileLogger.LogTipos.FATAL, RegistraFecha: false, logLugares: FileLogger.LogLugaresPorNombre(ConfigurationManager.AppSettings["Log_Archivo"].ToString()));
+                CargaMailSettings();
+                SmtpServer.Send(Mail);
+                return true;
             }
-            catch (Exception ex)
+            catch (Exception EnvEx)
             {
-                Console.Write(ex.ToString());
-                FileLogger.WriteToFile("Error enviando Correo", FileLogger.LogTipos.FATAL);
-                FileLogger.WriteToFile(ex.Message.ToString(), FileLogger.LogTipos.FATAL);
+                Console.Write(EnvEx.ToString());
+                FileLogger.WriteToFile(Message: "Error enviando Correo", tipo: FileLogger.LogTipos.ERROR);
+                FileLogger.WriteToFile(Message: EnvEx.Message.ToString(), tipo: FileLogger.LogTipos.ERROR);
+                return false;
+                throw EnvEx;
             }
         }
 
-        public static void SendMail(string subject = "", string body = "", bool test = false, bool localConfig = false)
+        public bool EnviarCorreo(string subject, string body)
         {
             try
             {
-                MailMessage mail = new MailMessage();
-
-                SmtpClient SmtpServer = new SmtpClient(ConfigurationManager.AppSettings["Mail.SMTP.Server.Name"].ToString());
-                mail.From = new MailAddress(ConfigurationManager.AppSettings["Mail.SMTP.Server.From"].ToString());
-                string[] Server_To = ConfigurationManager.AppSettings["Mail.SMTP.Server.To"].ToString().Split(';');
-                string Priority = ConfigurationManager.AppSettings["Mail.Priority"].ToString();
-                string destinatarios = string.Empty;
-                foreach (string s in Server_To)
-                {
-                    mail.To.Add(s);
-                    destinatarios += s + "\r\n";
-                }
-
-                if (ConfigurationManager.AppSettings["Cc"].ToString().Length > 0)
-                {
-                    Server_To = null;
-                    Server_To = ConfigurationManager.AppSettings["Cc"].ToString().Split(';');
-                    foreach (string s in Server_To)
-                    {
-                        mail.CC.Add(s);
-                        destinatarios += "Cc: " + s + "\r\n";
-                    }
-                }
-
-                if (ConfigurationManager.AppSettings["BCc"].ToString().Length > 0)
-                {
-                    Server_To = null;
-                    Server_To = ConfigurationManager.AppSettings["BCc"].ToString().Split(';');
-                    foreach (string s in Server_To)
-                    {
-                        mail.Bcc.Add(s);
-                    }
-                }
-                if (test)
-                {
-                    mail.Subject = "Test Mail";
-                    mail.Body = "This is for testing SMTP mail from Heimdall and MailCury";
-                }
-                else
-                {
-                    mail.Subject = subject;
-                    mail.Body = body;
-                }
-                switch (Priority.ToLower())
-                {
-                    case "high":
-                        mail.Priority = System.Net.Mail.MailPriority.High; break;
-                    case "low":
-                        mail.Priority = System.Net.Mail.MailPriority.Low; break;
-                    default:
-                        mail.Priority = System.Net.Mail.MailPriority.Normal; break;
-                }
-                SmtpServer.Send(mail);
-                Console.Write("Correo enviado");
-                FileLogger.WriteToFile(Message: "Correo enviado a: " + destinatarios, tipo: FileLogger.LogTipos.FATAL, RegistraFecha: false, logLugares: FileLogger.LogLugaresPorNombre(ConfigurationManager.AppSettings["Log_Archivo"].ToString()));
+                MailSettings.Subject = subject;
+                MailSettings.Body = body;
+                EnviarCorreo();
+                return true;
             }
-            catch (Exception ex)
+            catch (Exception EnvEx)
             {
-                Console.Write(ex.ToString());
-                FileLogger.WriteToFile("Error enviando Correo", FileLogger.LogTipos.FATAL);
-                FileLogger.WriteToFile(ex.Message.ToString(), FileLogger.LogTipos.FATAL);
+                Console.Write(EnvEx.ToString());
+                FileLogger.WriteToFile(Message: "Error enviando Correo (2)", tipo: FileLogger.LogTipos.ERROR);
+                FileLogger.WriteToFile(Message: EnvEx.Message.ToString(), tipo: FileLogger.LogTipos.ERROR);
+                return false;
+                throw EnvEx;
             }
+        }
+
+        public void PrepararNuevo(bool mantenerFrom)
+        {
+            string oldFrom = mantenerFrom ? Mail.From.Address : string.Empty;
+            MailSettings.PrepararNuevo(mantenerFrom);
+            Init();
+            if (mantenerFrom)
+                Mail.From = new MailAddress(oldFrom);
         }
     }
 }
