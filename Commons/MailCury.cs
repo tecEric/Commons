@@ -91,31 +91,41 @@ namespace Commons
             CargaMailSettings();
         }
 
-        public bool EnviarCorreo()
+        public bool EnviarCorreo(bool enviar = true, bool recargar = true)
         {
-            try
+            if (enviar)
             {
-                CargaMailSettings();
-                SmtpServer.Send(Mail);
-                return true;
+                try
+                {
+                    if (recargar)
+                        CargaMailSettings();
+                    SmtpServer.Send(Mail);
+                    Mail.Attachments.Dispose();
+                    return true;
+                }
+                catch (Exception EnvEx)
+                {
+                    Console.Write(EnvEx.ToString());
+                    FileLogger.WriteToFile(Message: "Error enviando Correo a " + Mail.To + (Mail.Attachments.Count() > 0 ? Mail.Attachments.Select(s => s.Name + ",").ToString() : string.Empty) + "\r\n", tipo: FileLogger.LogTipos.ERROR);
+                    FileLogger.WriteToFile(Message: EnvEx.Message.ToString(), tipo: FileLogger.LogTipos.ERROR);
+                    Mail.Attachments.Dispose();
+                    return false;
+                    throw EnvEx; 
+                }
             }
-            catch (Exception EnvEx)
+            else
             {
-                Console.Write(EnvEx.ToString());
-                FileLogger.WriteToFile(Message: "Error enviando Correo", tipo: FileLogger.LogTipos.ERROR);
-                FileLogger.WriteToFile(Message: EnvEx.Message.ToString(), tipo: FileLogger.LogTipos.ERROR);
-                return false;
-                throw EnvEx;
+                return true;
             }
         }
 
-        public bool EnviarCorreo(string subject, string body)
+        public bool EnviarCorreo(string subject, string body, bool enviar = true)
         {
             try
             {
                 MailSettings.Subject = subject;
                 MailSettings.Body = body;
-                EnviarCorreo();
+                EnviarCorreo(enviar);
                 return true;
             }
             catch (Exception EnvEx)
@@ -130,10 +140,11 @@ namespace Commons
 
         public void PrepararNuevo(bool mantenerFrom)
         {
-            string oldFrom = mantenerFrom ? Mail.From.Address : string.Empty;
+            string oldFrom = mantenerFrom ? (Mail.From != null ? Mail.From.Address ?? string.Empty : string.Empty) : string.Empty;
+            //Mail.Attachments.Clear();
             MailSettings.PrepararNuevo(mantenerFrom);
             Init();
-            if (mantenerFrom)
+            if (mantenerFrom && oldFrom.Length > 0)
                 Mail.From = new MailAddress(oldFrom);
         }
     }

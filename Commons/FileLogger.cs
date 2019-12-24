@@ -1,4 +1,8 @@
-﻿using System;
+﻿using log4net;
+using log4net.Appender;
+using log4net.Config;
+using log4net.Repository.Hierarchy;
+using System;
 using System.IO;
 
 namespace Commons
@@ -56,10 +60,29 @@ namespace Commons
             return resultado;
         }
 
+        public static void CambiaDestino(string destino, string appender)
+        {
+            XmlConfigurator.Configure();
+            Hierarchy h = (Hierarchy)LogManager.GetRepository();
+
+            foreach (IAppender a in h.Root.Appenders)
+            {
+                if (a is FileAppender fa)
+                {
+                    if (a.Name == appender)
+                    {
+                        fa.File = destino;
+                        fa.ActivateOptions();
+                        break;
+                    }
+                }
+            }
+        }
+
         public static void WriteToFile(string Message, LogTipos tipo = LogTipos.ALL, bool RegistraFecha = false, LogLugares logLugares = LogLugares.Log4Net, log4net.ILog log = null)
         {
             if (log == null)
-                log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+                log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
             string path = AppDomain.CurrentDomain.BaseDirectory + "\\Logs";
             if (!Directory.Exists(path))

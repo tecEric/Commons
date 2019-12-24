@@ -4,6 +4,7 @@ namespace Commons.Model
 {
     public class MailParts
     {
+        #region Properties
         public string From { get; set; }
         public string Subject { get; set; }
         public string Body { get; set; }
@@ -105,6 +106,7 @@ namespace Commons.Model
             get
             { return Attachments; }
         }
+        #endregion
 
         public void PrepararNuevo(bool mantenerFrom)
         {
