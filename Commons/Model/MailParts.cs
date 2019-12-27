@@ -8,6 +8,9 @@ namespace Commons.Model
         public string From { get; set; }
         public string Subject { get; set; }
         public string Body { get; set; }
+        public bool Encriptar { get; set; }
+        public bool IsBodyHtml { get; set; }
+        public System.Net.Mail.MailPriority Priority { get; set; }
 
         private string[] Destinatarios { get; set; }
         public string Destinatarios_lista
@@ -81,8 +84,6 @@ namespace Commons.Model
             { return BCc; }
         }
 
-        public System.Net.Mail.MailPriority Priority { get; set; }
-
         private string[] Attachments { get; set; }
         public string Attachments_lista
         {
@@ -113,7 +114,19 @@ namespace Commons.Model
             if (!mantenerFrom)
             { From = string.Empty; }
             Subject = Body = Destinatarios_lista = Cc_lista = BCc_lista = Attachments_lista = string.Empty;
+            IsBodyHtml = false;
             Priority = System.Net.Mail.MailPriority.Normal;
+        }
+
+        public void SetMailSettings(bool encriptar, string mailTexts_Cuerpo, string mailTexts_Asunto, string a, string fechai, string fechaf, string nombre_apellido, string email, string email_copy)
+        {
+            IsBodyHtml = true;
+            Attachments_lista = a ?? string.Empty;
+            Encriptar = encriptar;
+            Destinatarios_lista = email;
+            Cc_lista = email_copy ?? string.Empty;
+            Body = mailTexts_Cuerpo.Replace("<nombre_emp>", nombre_apellido).Replace("<fechai>", fechai).Replace("<fechaf>", fechaf).Replace("<fecha_hora_hoy>", DateTime.Now.ToString("dd/MM/yyyy"));
+            Subject = mailTexts_Asunto;
         }
     }
 }

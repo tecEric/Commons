@@ -59,7 +59,6 @@ namespace Commons
             }
             return resultado;
         }
-
         public static void CambiaDestino(string destino, string appender)
         {
             XmlConfigurator.Configure();
@@ -79,12 +78,33 @@ namespace Commons
             }
         }
 
-        public static void WriteToFile(string Message, LogTipos tipo = LogTipos.ALL, bool RegistraFecha = false, LogLugares logLugares = LogLugares.Log4Net, log4net.ILog log = null)
+        public static void CambiaDestino(string[,] destino_appender)
+        {
+            int x = 0;
+            XmlConfigurator.Configure();
+            Hierarchy h = (Hierarchy)LogManager.GetRepository();
+            while (x <= destino_appender.GetUpperBound(0))
+            {
+                foreach (IAppender a in h.Root.Appenders)
+                {
+                    if (a is FileAppender fa)
+                    {
+                        if (a.Name == destino_appender[x, 1])
+                            fa.File = destino_appender[x, 0];
+                        fa.ActivateOptions();
+                        break;
+                    }
+                }
+                x++;
+            }
+        }
+
+        public static void WriteToFile(string Message, LogTipos tipo = LogTipos.ALL, bool RegistraFecha = false, LogLugares logLugares = LogLugares.Log4Net, log4net.ILog log = null, string path = null)
         {
             if (log == null)
                 log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-            string path = AppDomain.CurrentDomain.BaseDirectory + "\\Logs";
+            path = path ?? AppDomain.CurrentDomain.BaseDirectory + "\\Logs";
             if (!Directory.Exists(path))
             {
                 Directory.CreateDirectory(path);
@@ -94,7 +114,7 @@ namespace Commons
                 string Message1 = RegistraFecha ? Message : DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss -> ") + Message;
 
                 string fileName = tipo == LogTipos.INFO ? "ServiceLog_" : "ServiceLog_Error_";
-                string filepath = AppDomain.CurrentDomain.BaseDirectory + "\\Logs\\" + fileName + DateTime.Now.Date.ToShortDateString().Replace('/', '_') + ".txt";
+                string filepath = path + "\\" + fileName + DateTime.Now.Date.ToShortDateString().Replace('/', '_') + ".txt";
                 if (!File.Exists(filepath))
                 {
                     // Create a file to write to.
@@ -130,7 +150,36 @@ namespace Commons
         {
             if (log == null)
                 log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-            WriteToFile(Message, LogTipos.ALL, false, LogLugares.Log4Net, log);
+            WriteToFile(Message, LogTipos.INFO, false, LogLugares.Log4Net, log);
         }
+
+        /*En realidad, se debe correr en el programa que llame, pero para dejar el "esqueleto" de como cambiar el destino de los logs*/
+        /*
+        internal static void AjustaLogs(string ruta, string ahora)
+        {
+            XmlConfigurator.Configure();
+            log4net.Repository.Hierarchy.Hierarchy h =
+            (log4net.Repository.Hierarchy.Hierarchy)LogManager.GetRepository();
+            foreach (var a in h.Root.Appenders)
+            {
+                if (a is log4net.Appender.FileAppender)
+                {
+                    if (a.Name.Equals("MyFileAppender"))
+                    {
+                        log4net.Appender.FileAppender fa = (log4net.Appender.FileAppender)a;
+                        string logFileLocation = ruta + ahora + ".log";
+                        fa.File = logFileLocation;
+                        fa.ActivateOptions();
+                    }
+                    else if (a.Name.Equals("MyErrorFileAppender"))
+                    {
+                        log4net.Appender.FileAppender fa = (log4net.Appender.FileAppender)a;
+                        string logFileLocation = ruta + "_ERROR" + ahora + ".log";
+                        fa.File = logFileLocation;
+                        fa.ActivateOptions();
+                    }
+                }
+            }
+        }*/
     }
 }

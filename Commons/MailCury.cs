@@ -60,6 +60,7 @@ namespace Commons
 
         public void CargaMailSettings()
         {
+            Mail.IsBodyHtml = MailSettings.IsBodyHtml;
             Mail.From = new MailAddress(MailSettings.From);
             if (!string.IsNullOrEmpty(MailSettings.Destinatarios_lista))
             {
@@ -83,6 +84,18 @@ namespace Commons
             Mail.Priority = MailSettings.Priority;
             Mail.Body = MailSettings.Body ?? string.Empty;
             Mail.Subject = MailSettings.Subject ?? string.Empty;
+        }
+
+        public void CargaAttachments()
+        {
+            if (MailSettings.g_Attachments != null)
+            {
+                Mail.Attachments.Clear();
+                foreach (string a in MailSettings.g_Attachments.Where(c => c.Length > 0))
+                {
+                    Mail.Attachments.Add(new Attachment(a));
+                }
+            }
         }
 
         public void CargaMailSettings(MailParts mailSettings)
